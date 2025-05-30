@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>교시 시간표 위젯</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    padding: 1rem;
+    background: #f9f9f9;
+    color: #333;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .input-container label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+  }
+  input[type="time"], input[type="number"] {
+    width: 100px;
+  }
+  button {
+    margin-top: 0.5rem;
+    padding: 0.4rem 1rem;
+    border: none;
+    background: #4CAF50;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #currentPeriod {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<h1>교시 시간표 위젯</h1>
+
+<div class="input-container">
+  <label>1교시 시작 시간: <input type="time" id="p1Start" /></label>
+  <label>1교시 길이 (분): <input type="number" id="p1Length" min="1" /></label>
+  <label>점심 시작 시간: <input type="time" id="lunchStart" /></label>
+  <label>점심시간 길이 (분): <input type="number" id="lunchLength" min="1" /></label>
+  <button id="saveBtn">저장</button>
+</div>
+
+<div id="currentPeriod">현재 교시를 계산 중입니다...</div>
+
+<script>
+  // 저장 버튼 클릭시 입력값 저장 및 교시 계산 시작
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const p1Start = document.getElementById('p1Start').value;
+    const p1Length = parseInt(document.getElementById('p1Length').value, 10);
+    const lunchStart = document.getElementById('lunchStart').value;
+    const lunchLength = parseInt(document.getElementById('lunchLength').value, 10);
+
+    if (!p1Start || !p1Length || !lunchStart || !lunchLength) {
+      alert('모든 항목을 입력하세요!');
+      return;
+    }
+
+    // 로컬스토리지 저장
+    localStorage.setItem('p1Start', p1Start);
+    localStorage.setItem('p1Length', p1Length);
+    localStorage.setItem('lunchStart', lunchStart);
+    localStorage.setItem('lunchLength', lunchLength);
+
+    updatePeriod(); // 바로 계산 시작
+  });
+
+  // 교시 정보 계산
+  function calculatePeriods() {
+    const p1Start = localStorage.getItem('p1Start');
+    const p1Length = parseInt(localStorage.getItem('p1Length'), 10);
+    const lunchStart = localStorage.getItem('lunchStart');
+    const lunchLength = parseInt(localStorage.getItem('lunchLength'), 10);
+
+    if (!p1Start || !p1Length || !lunchStart || !lunchLength) {
+      return [];
+    }
+
+    const periods = [];
+    const now = new Date();
+    let [hour, minute] = p1Start.split(':').map(Number);
+    let start = new Date(now);
+    start.setHours(hour, minute, 0, 0);
+
+    // 1~7교시 자동 계산
+    for (let i = 1; i <= 7; i++) {
+      let end = new Date(start.getTime() + p1Length * 60000);
+      periods.push({
+        name: `${i}교시`,
+        start: new Date(start),
+        end: new Date(end),
+      });
+      // 쉬는시간 10분
+      start = new Date(end.getTime() + 10 * 60000);
+    }
+
+    // 점심시간
+    let [lunchH, lunchM] = lunchStart.split(':').map(Number);
+    let lunchS = new Date(now);
+    lunchS.setHours(lunchH, lunchM, 0, 0);
+    let lunchE = new Date(lunchS.getTime() + lunchLength * 60000);
+    periods.push({
+      name: '점심시간',
+      start: lunchS,
+      end: lunchE,
+    });
+
+    return periods;
+  }
+
+  // 현재 시각과 비교하여 현재 교시 반환
+  function findCurrentPeriod(periods) {
+    const now = new Date();
+    for (let p of periods) {
+      if (now >= p.start && now <= p.end) {
+        return p.name;
+      }
+    }
+    return '수업 시간 외';
+  }
+
+  // 주기적으로 현재 교시 업데이트
+  function updatePeriod() {
+    const periods = calculatePeriods();
+    const current = findCurrentPeriod(periods);
+    document.getElementById('currentPeriod').innerText = `현재: ${current}`;
+  }
+
+  // 초기화: 저장된 값 있으면 입력폼에 채우기
+  window.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('p1Start')) document.getElementById('p1Start').value = localStorage.getItem('p1Start');
+    if (localStorage.getItem('p1Length')) document.getElementById('p1Length').value = localStorage.getItem('p1Length');
+    if (localStorage.getItem('lunchStart')) document.getElementById('lunchStart').value = localStorage.getItem('lunchStart');
+    if (localStorage.getItem('lunchLength')) document.getElementById('lunchLength').value = localStorage.getItem('lunchLength');
+
+    updatePeriod();
+    // 1분마다 갱신
+    setInterval(updatePeriod, 60000);
+  });
+</script>
+
+</body>
+</html>
