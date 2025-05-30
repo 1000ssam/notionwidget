@@ -64,7 +64,6 @@
 <body>
 
 <button class="toggle-btn" onclick="toggleInputs()">Toggle Inputs</button>
-<button id="refreshBtn" class="toggle-btn">Refresh</button>
 
 <div class="input-container" id="inputContainer">
   <label>First period start: <input type="time" id="p1Start" /></label>
@@ -155,10 +154,6 @@
     const current = findCurrentPeriod(periods);
     document.getElementById('currentPeriod').innerText = current;
   }
-
-  document.getElementById('refreshBtn').addEventListener('click', () => {
-    updatePeriod();
-  });
 
   window.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('p1Start')) document.getElementById('p1Start').value = localStorage.getItem('p1Start');
